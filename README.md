@@ -126,7 +126,7 @@ AstraSync is building the trust infrastructure for AI agents. Learn more at [ast
 
 - **Main API**: [github.com/AstraSyncAI/astrasync-api](https://github.com/AstraSyncAI/astrasync-api)
 - **Documentation**: [docs.astrasync.ai](https://docs.astrasync.ai)
-- **Discord**: [Join our community](https://discord.gg/atrasync-preview)
+- **Discord**: [Join our community](https://discord.gg/X78ctNp7)
 
 ## License
 
