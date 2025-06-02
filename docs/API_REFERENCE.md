@@ -1,7 +1,7 @@
 # AstraSync API Reference
 
 <div align="center">
-  <img src="https://astrasync.ai/logo.png" alt="AstraSync Logo" width="200"/>
+  <img src="https://www.astrasync.ai/assets/AS_black_IconFCN.png" alt="AstraSync Logo" width="200"/>
   
   # Technical Protocol Documentation
   
