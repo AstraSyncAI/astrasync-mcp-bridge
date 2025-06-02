@@ -1,7 +1,7 @@
 # AstraSync MCP Bridge
 
 <div align="center">
-  <img src="https://astrasync.ai/logo.png" alt="AstraSync Logo" width="200"/>
+  <img src="https://www.astrasync.ai/assets/AS_black_IconFCN.png" alt="AstraSync Logo" width="200"/>
   
   [![MCP Version](https://img.shields.io/badge/MCP-v1.0-blue)](https://modelcontextprotocol.org)
   [![API Status](https://img.shields.io/badge/API-Operational-green)](https://astrasync-mcp-bridge-production.up.railway.app)
