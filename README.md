@@ -125,7 +125,7 @@ npm run dev
 AstraSync is building the trust infrastructure for AI agents. Learn more at [astrasync.ai](https://astrasync.ai).
 
 - **Main API**: [github.com/AstraSyncAI/astrasync-api](https://github.com/AstraSyncAI/astrasync-api)
-- **Documentation**: [docs.astrasync.ai](https://docs.astrasync.ai)
+- **Documentation**: [docs.astrasync.ai]((https://github.com/AstraSyncAI/astrasync-mcp-bridge/tree/main/docs))
 - **Discord**: [Join our community](https://discord.gg/X78ctNp7)
 
 ## License
