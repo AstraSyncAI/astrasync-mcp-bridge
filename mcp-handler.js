@@ -120,12 +120,16 @@ export async function handleMCPRequest(req, res, apiClient) {
               }
             });
             
-            // Format success response
+            // Format success response with enhanced messaging
             const successMessage = [
               `Successfully registered agent: ${args.agentName}`,
-              `Agent ID: ${result.agentId}`,
-              `Trust Score: ${result.trustScore.score}`,
+              `Agent ID: ${result.agentId} (TEMPORARY - converts on account creation)`,
+              `Trust Score: ${result.trustScore} (PREVIEW - becomes dynamic on account creation)`,
               `Blockchain Status: ${result.blockchain.status}`,
+              '',
+              'This is a DEVELOPER PREVIEW registration.',
+              'To convert to permanent credentials, create an account at:',
+              'https://www.astrasync.ai/alphaSignup',
               '',
               'Save this Agent ID for future reference.'
             ].join('\n');
@@ -172,27 +176,38 @@ export async function handleMCPRequest(req, res, apiClient) {
             const verification = await apiClient.verifyAgent(args.agentId);
             
             let message;
-            if (verification.exists) {
-              // Try to get more details if we can
-              try {
-                const details = await apiClient.getAgentDetails(args.agentId, 'unknown@mcp.com');
-                if (details) {
-                  message = [
-                    `✓ Agent ${args.agentId} is registered and active.`,
-                    `Name: ${details.name}`,
-                    `Owner: ${details.owner}`,
-                    `Registered: ${new Date(details.registeredAt).toLocaleString()}`,
-                    `Status: ${verification.status || 'active'}`
-                  ].join('\n');
-                } else {
-                  message = `✓ Agent ${args.agentId} is registered and active.`;
-                }
-              } catch {
-                // If details fail, just use basic verification
-                message = `✓ Agent ${args.agentId} is registered and active.`;
+            // Check for 'verified' field, not 'exists'
+            if (verification && verification.verified === true) {
+              // Build detailed message with all available information
+              const lines = [
+                `✓ Agent ${args.agentId} is registered and verified.`,
+                `Name: ${verification.agent?.name || 'Unknown'}`,
+                `Owner: ${verification.agent?.owner || 'Unknown'}`,
+                `Trust Score: ${verification.trustScore || 'Unknown'}`,
+                `Status: ${verification.status || 'active'}`,
+                `Blockchain Status: ${verification.blockchain?.status || 'pending'}`
+              ];
+              
+              if (verification.registeredAt) {
+                lines.push(`Registered: ${new Date(verification.registeredAt).toLocaleString()}`);
               }
+              
+              // Add developer preview message if it's a TEMP agent
+              if (verification.trustScore && verification.trustScore.startsWith('TEMP')) {
+                lines.push('');
+                lines.push('This is a DEVELOPER PREVIEW agent.');
+                lines.push('Create an account at https://www.astrasync.ai/alphaSignup');
+                lines.push('to convert to permanent credentials.');
+              }
+              
+              message = lines.join('\n');
+            } else if (verification && verification.error) {
+              // Handle error response from API
+              message = `✗ Error verifying agent: ${verification.error}`;
             } else {
+              // Agent not found or unexpected response
               message = `✗ Agent ${args.agentId} not found in the registry.`;
+              console.error('[MCP] Unexpected verification response:', verification);
             }
             
             return res.json({
@@ -209,6 +224,22 @@ export async function handleMCPRequest(req, res, apiClient) {
             });
           } catch (error) {
             console.error('[MCP] Verification error:', error);
+            
+            // Check if it's a 404 (agent not found)
+            if (error.message && error.message.includes('404')) {
+              return res.json({
+                jsonrpc: '2.0',
+                id,
+                result: {
+                  content: [
+                    {
+                      type: 'text',
+                      text: `✗ Agent ${args.agentId} not found in the registry.`
+                    }
+                  ]
+                }
+              });
+            }
             
             return res.json({
               jsonrpc: '2.0',
