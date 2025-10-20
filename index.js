@@ -285,7 +285,7 @@ app.get('/mcp/test', (req, res) => {
       <h2>Need Help?</h2>
       <p>Check out our documentation on GitHub: <a href="https://github.com/AstraSyncAI/astrasync-mcp-bridge" target="_blank">AstraSync MCP Bridge</a></p>
       <div class="info-box">
-        <p><strong>Note:</strong> This is a developer preview. No authentication is required.</p>
+        <p><strong>Note:</strong> This is a production. No authentication is required.</p>
         <p>Registered agents receive temporary IDs (TEMP-XXXXX) that will be migrated to permanent IDs when you create an account.</p>
       </div>
     </div>

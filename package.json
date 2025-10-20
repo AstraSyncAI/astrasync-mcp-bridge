@@ -1,7 +1,7 @@
 {
   "name": "astrasync-mcp-bridge",
-  "version": "0.1.0",
-  "description": "HTTP MCP bridge for AstraSync AI Agent Registry - Enable any AI assistant to register and verify agents",
+  "version": "1.0.0",
+  "description": "Production HTTP MCP bridge for AstraSync AI Agent Registry - Enable any AI assistant to register and verify agents",
   "main": "index.js",
   "type": "module",
   "engines": {

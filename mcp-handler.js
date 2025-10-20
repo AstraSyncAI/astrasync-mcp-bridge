@@ -127,7 +127,7 @@ export async function handleMCPRequest(req, res, apiClient) {
               `Trust Score: ${result.trustScore} (PREVIEW - becomes dynamic on account creation)`,
               `Blockchain Status: ${result.blockchain.status}`,
               '',
-              'This is a DEVELOPER PREVIEW registration.',
+              'This is a PRODUCTION registration.',
               'To convert to permanent credentials, create an account at:',
               'https://www.astrasync.ai/alphaSignup',
               '',
@@ -192,10 +192,10 @@ export async function handleMCPRequest(req, res, apiClient) {
                 lines.push(`Registered: ${new Date(verification.registeredAt).toLocaleString()}`);
               }
               
-              // Add developer preview message if it's a TEMP agent
+              // Add production message if it's a TEMP agent
               if (verification.trustScore && verification.trustScore.startsWith('TEMP')) {
                 lines.push('');
-                lines.push('This is a DEVELOPER PREVIEW agent.');
+                lines.push('This is a PRODUCTION agent.');
                 lines.push('Create an account at https://www.astrasync.ai/alphaSignup');
                 lines.push('to convert to permanent credentials.');
               }

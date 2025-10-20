@@ -1,10 +1,9 @@
 // api-client.js
 // Handles communication with the AstraSync API
 
-// IMPORTANT: This is the DEVELOPER PREVIEW API
-// All registrations create TEMP credentials that convert to permanent
-// when you create an account at https://www.astrasync.ai/alphaSignup
-const API_BASE_URL = process.env.ASTRASYNC_API_URL || 'https://astrasync-api-production.up.railway.app';
+// Production API - Agents registered receive temporary IDs that can be
+// managed by creating an account at https://www.astrasync.ai/alphaSignup
+const API_BASE_URL = process.env.ASTRASYNC_API_URL || 'https://astrasync.ai/api';
 
 export async function registerAgent({ email, agent }) {
   const response = await fetch(`${API_BASE_URL}/v1/register`, {
