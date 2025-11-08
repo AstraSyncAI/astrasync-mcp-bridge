@@ -9,25 +9,48 @@ The AstraSync MCP Bridge connects AI assistants and development tools to the Ast
 ## Key Features
 
 - **Universal Protocol**: Works with any MCP-compatible platform via HTTP
-- **Zero Installation**: No local servers or configuration required  
+- **Simple Setup**: Quick self-hosted deployment with minimal configuration
 - **Instant Integration**: AI assistants can register agents during natural conversation
 - **Real-time Compliance**: Every agent gets a verifiable identity and trust score
 
 ## Quick Start
 
-**Test it now**: https://astrasync-mcp-bridge.up.railway.app/mcp/test
+### Self-Hosted Setup
 
-**Basic configuration** (for MCP-compatible platforms):
+```bash
+# Clone and install
+git clone https://github.com/AstraSyncAI/astrasync-mcp-bridge.git
+cd astrasync-mcp-bridge
+npm install
+
+# Configure environment
+cp .env.example .env
+# Edit .env if needed (defaults to production API at https://astrasync.ai/api)
+
+# Start the bridge
+npm start
+# Or for development with auto-reload:
+npm run dev
+```
+
+The bridge will run on `http://localhost:3000` by default.
+
+### MCP Configuration
+
+Once running, configure your AI assistant to use the bridge:
+
 ```json
 {
   "mcpServers": {
     "astrasync": {
-      "url": "https://astrasync-mcp-bridge.up.railway.app/mcp/v1",
+      "url": "http://localhost:3000/mcp/v1",
       "transport": "http"
     }
   }
 }
 ```
+
+**Test your setup**: Visit `http://localhost:3000/mcp/test` for an interactive test interface.
 
 ## Available Tools
 
@@ -57,11 +80,11 @@ For detailed platform-specific instructions, see [PLATFORMS.md](docs/PLATFORMS.m
 
 ## Direct API Usage
 
-For platforms without MCP support:
+For platforms without MCP support, you can call the bridge directly:
 
 ```bash
-curl -X POST https://astrasync-mcp-bridge.up.railway.app/mcp/v1 \
-  -H "Content-Type: application/json" \
+curl -X POST http://localhost:3000/mcp/v1 \
+  -H "Content-Type": "application/json" \
   -d '{
     "jsonrpc": "2.0",
     "id": 1,
@@ -99,19 +122,32 @@ curl -X POST https://astrasync-mcp-bridge.up.railway.app/mcp/v1 \
 AI Assistant → MCP Protocol (HTTP) → AstraSync MCP Bridge → AstraSync API
 ```
 
-## Development
+## Production Deployment
+
+### Environment Variables
+
+- `PORT`: Server port (default: 3000)
+- `NODE_ENV`: Environment mode (development/production)
+- `ASTRASYNC_API_URL`: AstraSync API endpoint (default: https://astrasync.ai/api)
+
+### Deployment Options
+
+**Docker:**
+```bash
+docker build -t astrasync-mcp-bridge .
+docker run -p 3000:3000 -e ASTRASYNC_API_URL=https://astrasync.ai/api astrasync-mcp-bridge
+```
+
+**Cloud Platforms:**
+- Works on any Node.js hosting (Railway, Render, Fly.io, AWS, GCP, Azure)
+- Set `ASTRASYNC_API_URL` environment variable if needed
+- Ensure port 3000 (or custom PORT) is accessible
+
+### Development
 
 ```bash
-# Clone and install
-git clone https://github.com/AstraSyncAI/astrasync-mcp-bridge.git
-cd astrasync-mcp-bridge
-npm install
-
-# Configure (copy .env.example to .env and edit)
-cp .env.example .env
-
-# Run locally
-npm run dev
+npm run dev  # Auto-reload on file changes
+npm start    # Production mode
 ```
 
 ## Documentation
