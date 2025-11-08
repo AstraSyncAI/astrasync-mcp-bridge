@@ -220,20 +220,21 @@ app.get('/mcp/test', (req, res) => {
       <h2>Integration Instructions</h2>
       <p>To integrate with your AI assistant, use the following endpoint:</p>
       <div class="code-block">
-        <span class="method">POST</span> <span class="endpoint">https://astrasync-mcp-bridge.up.railway.app/mcp/v1</span>
+        <span class="method">POST</span> <span class="endpoint">/mcp/v1</span>
       </div>
-      
+
       <h3>Configuration for AI Assistants</h3>
       <div class="code-block">
 <pre>{
   "mcpServers": {
     "astrasync": {
-      "url": "https://astrasync-mcp-bridge.up.railway.app/mcp/v1",
+      "url": "http://localhost:3000/mcp/v1",
       "transport": "http"
     }
   }
 }</pre>
       </div>
+      <p><em>Replace localhost:3000 with your deployed bridge URL</em></p>
     </div>
     
     <div class="section">
@@ -285,8 +286,8 @@ app.get('/mcp/test', (req, res) => {
       <h2>Need Help?</h2>
       <p>Check out our documentation on GitHub: <a href="https://github.com/AstraSyncAI/astrasync-mcp-bridge" target="_blank">AstraSync MCP Bridge</a></p>
       <div class="info-box">
-        <p><strong>Note:</strong> This is a production. No authentication is required.</p>
-        <p>Registered agents receive temporary IDs (TEMP-XXXXX) that will be migrated to permanent IDs when you create an account.</p>
+        <p><strong>Note:</strong> This bridge connects to the AstraSync API for agent registration.</p>
+        <p>Create an account at <a href="https://astrasync.ai" target="_blank">astrasync.ai</a> to manage your registered agents.</p>
       </div>
     </div>
   </div>
@@ -399,7 +400,7 @@ app.use((err, req, res, next) => {
 app.listen(port, () => {
   console.log(`AstraSync MCP Bridge running on port ${port}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`API URL: ${process.env.ASTRASYNC_API_URL || 'https://astrasync-api-production.up.railway.app'}`);
+  console.log(`API URL: ${process.env.ASTRASYNC_API_URL || 'https://astrasync.ai/api'}`);
   console.log(`\nEndpoints:`);
   console.log(`  - MCP Protocol: POST http://localhost:${port}/mcp/v1`);
   console.log(`  - Test Interface: http://localhost:${port}/mcp/test`);
