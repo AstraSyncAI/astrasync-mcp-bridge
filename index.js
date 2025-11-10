@@ -1,10 +1,17 @@
-// index.js
-// AstraSync MCP Bridge - HTTP server for Model Context Protocol
+// AstraSync MCP Bridge - Using official @modelcontextprotocol/sdk
+// Migrated from custom implementation to official SDK for automatic protocol compliance
 
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { handleMCPRequest } from './mcp-handler.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ErrorCode,
+  McpError
+} from '@modelcontextprotocol/sdk/types.js';
 import * as apiClient from './api-client.js';
 
 // Load environment variables
@@ -17,365 +24,412 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Create MCP Server instance
+const mcpServer = new Server(
+  {
+    name: 'astrasync-mcp',
+    version: '2.0.0',
+  },
+  {
+    capabilities: {
+      tools: {},
+    },
+  }
+);
+
+// Create StreamableHTTP transport (stateless mode)
+const transport = new StreamableHTTPServerTransport({
+  sessionIdGenerator: undefined, // Stateless mode - no session management
+});
+
+// Handle tools/list requests
+mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: 'register_agent',
+        description: 'Register a new AI agent with AstraSync for compliance tracking (requires authentication)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            agentName: { type: 'string', description: 'Name of the AI agent' },
+            agentDescription: { type: 'string', description: 'What the agent does' },
+            agentOwner: { type: 'string', description: 'Name of the agent owner or company' },
+            email: { type: 'string', description: 'Your AstraSync account email (for authentication)' },
+            password: { type: 'string', description: 'Your AstraSync account password (for authentication). Not required if using apiKey.' },
+            apiKey: { type: 'string', description: 'Your AstraSync API key (alternative to email/password authentication)' },
+          },
+          required: ['agentName', 'agentDescription', 'agentOwner', 'email'],
+        },
+      },
+      {
+        name: 'verify_agent',
+        description: 'Verify if an agent is registered with AstraSync',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            agentId: { type: 'string', description: 'The agent ID to verify' },
+          },
+          required: ['agentId'],
+        },
+      },
+      {
+        name: 'create_account',
+        description: 'Create a new AstraSync developer account',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            email: { type: 'string', description: 'Email address for the account' },
+            password: { type: 'string', description: 'Password for the account (min 8 characters)' },
+            fullName: { type: 'string', description: 'Full name of the developer' },
+            accountType: { type: 'string', description: 'Account type: individual or business', enum: ['individual', 'business'] },
+          },
+          required: ['email', 'password', 'fullName'],
+        },
+      },
+      {
+        name: 'generate_api_key',
+        description: 'Generate a new API key for your AstraSync account (requires authentication)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            email: { type: 'string', description: 'Account email address' },
+            password: { type: 'string', description: 'Account password' },
+            keyName: { type: 'string', description: 'Name/label for this API key' },
+          },
+          required: ['email', 'password', 'keyName'],
+        },
+      },
+      {
+        name: 'create_crypto_keypair',
+        description: 'Generate a crypto keypair for signing agent registrations (requires authentication, Developer tier)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            email: { type: 'string', description: 'Account email address' },
+            password: { type: 'string', description: 'Account password' },
+            keyName: { type: 'string', description: 'Name/label for this keypair' },
+          },
+          required: ['email', 'password'],
+        },
+      },
+    ],
+  };
+});
+
+// Handle tools/call requests
+mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const toolName = request.params.name;
+  const args = request.params.arguments;
+
+  try {
+    switch (toolName) {
+      case 'register_agent': {
+        // Log the attempt
+        await apiClient.logAttempt({
+          event: 'mcp_registration_attempt',
+          data: {
+            email: args.email,
+            agentName: args.agentName,
+            source: 'mcp-http-sdk',
+          },
+        });
+
+        // Call the registration API
+        const result = await apiClient.registerAgent({
+          email: args.email,
+          password: args.password,
+          apiKey: args.apiKey,
+          agent: {
+            name: args.agentName,
+            description: args.agentDescription,
+            owner: args.agentOwner,
+          },
+        });
+
+        // Format success response
+        const successMessage = [
+          `✓ Successfully registered agent: ${args.agentName}`,
+          `Agent ID: ${result.id || result.agentId}`,
+          `Trust Score: ${result.trustScore || 'Pending calculation'}`,
+          `Status: ${result.status || 'Active'}`,
+          '',
+          'Manage your agent: https://astrasync.ai/dashboard',
+        ].join('\n');
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: successMessage,
+            },
+          ],
+        };
+      }
+
+      case 'verify_agent': {
+        const verification = await apiClient.verifyAgent(args.agentId);
+
+        let message;
+        if (verification && verification.verified === true) {
+          const lines = [
+            `✓ Agent ${args.agentId} is registered and verified.`,
+            `Name: ${verification.agent?.name || 'Unknown'}`,
+            `Owner: ${verification.agent?.owner || 'Unknown'}`,
+            `Trust Score: ${verification.trustScore || 'Unknown'}`,
+            `Status: ${verification.status || 'active'}`,
+            `Blockchain Status: ${verification.blockchain?.status || 'pending'}`,
+          ];
+
+          if (verification.registeredAt) {
+            lines.push(`Registered: ${new Date(verification.registeredAt).toLocaleString()}`);
+          }
+
+          message = lines.join('\n');
+        } else if (verification && verification.error) {
+          message = `✗ Error verifying agent: ${verification.error}`;
+        } else {
+          message = `✗ Agent ${args.agentId} not found in the registry.`;
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: message,
+            },
+          ],
+        };
+      }
+
+      case 'create_account': {
+        const result = await apiClient.createAccount({
+          email: args.email,
+          password: args.password,
+          fullName: args.fullName,
+          accountType: args.accountType || 'individual',
+        });
+
+        const successMessage = [
+          `✓ Account created successfully!`,
+          `Email: ${args.email}`,
+          `Type: ${args.accountType || 'individual'}`,
+          '',
+          'You can now:',
+          '• Generate API keys with generate_api_key',
+          '• Create crypto keypairs with create_crypto_keypair (Developer tier)',
+          '• Register agents with your account',
+          '',
+          `Login to your dashboard: https://astrasync.ai/dashboard`,
+        ].join('\n');
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: successMessage,
+            },
+          ],
+        };
+      }
+
+      case 'generate_api_key': {
+        const result = await apiClient.generateApiKey({
+          email: args.email,
+          password: args.password,
+          keyName: args.keyName,
+        });
+
+        const successMessage = [
+          `✓ API key generated successfully!`,
+          ``,
+          `Key Name: ${args.keyName}`,
+          `API Key: ${result.apiKey}`,
+          ``,
+          `⚠️  IMPORTANT: Save this API key securely!`,
+          `You won't be able to see it again.`,
+          ``,
+          `Use this key to authenticate API requests:`,
+          `Authorization: Bearer ${result.apiKey}`,
+          ``,
+          `Manage your API keys: https://astrasync.ai/settings/developer-tools`,
+        ].join('\n');
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: successMessage,
+            },
+          ],
+        };
+      }
+
+      case 'create_crypto_keypair': {
+        try {
+          const result = await apiClient.createCryptoKeypair({
+            email: args.email,
+            password: args.password,
+            keyName: args.keyName,
+          });
+
+          const successMessage = [
+            `✓ Crypto keypair generated successfully!`,
+            ``,
+            `Key Name: ${args.keyName || 'Default'}`,
+            `Public Key: ${result.publicKey}`,
+            ``,
+            `⚠️  IMPORTANT SECURITY NOTICE:`,
+            `• Your mnemonic phrase has been sent to ${args.email}`,
+            `• Save it securely offline - it cannot be recovered!`,
+            `• Never share your mnemonic or private key`,
+            `• This keypair is stored securely in your account`,
+            ``,
+            `You can now:`,
+            `• Sign agent registrations cryptographically`,
+            `• Prove ownership for secure transfers`,
+            `• Boost trust scores with verified authenticity`,
+            ``,
+            `Tier note: Free tier allows 1 keypair, Developer tier allows unlimited.`,
+            ``,
+            `Manage keypairs: https://astrasync.ai/settings/developer-tools`,
+          ].join('\n');
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: successMessage,
+              },
+            ],
+          };
+        } catch (error) {
+          // Check if it's a tier limitation error
+          if (error.message && error.message.includes('tier')) {
+            const tierMessage = `Free tier allows 1 crypto keypair. Upgrade to Developer tier for unlimited keypairs: https://astrasync.ai/pricing`;
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              tierMessage
+            );
+          }
+          throw error;
+        }
+      }
+
+      default:
+        throw new McpError(
+          ErrorCode.MethodNotFound,
+          `Unknown tool: ${toolName}`
+        );
+    }
+  } catch (error) {
+    console.error(`[MCP] Error executing tool ${toolName}:`, error);
+
+    // If it's already an McpError, rethrow it
+    if (error instanceof McpError) {
+      throw error;
+    }
+
+    // Log registration failures
+    if (toolName === 'register_agent') {
+      await apiClient.logAttempt({
+        event: 'mcp_registration_failed',
+        data: {
+          email: args.email,
+          agentName: args.agentName,
+          error: error.message,
+          source: 'mcp-http-sdk',
+        },
+      });
+    }
+
+    // Handle 404 errors for verification
+    if (toolName === 'verify_agent' && error.message && error.message.includes('404')) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `✗ Agent ${args.agentId} not found in the registry.`,
+          },
+        ],
+      };
+    }
+
+    // Convert other errors to MCP errors
+    throw new McpError(
+      ErrorCode.InternalError,
+      error.message || 'An error occurred'
+    );
+  }
+});
+
 // Health check endpoint
 app.get('/', (req, res) => {
   res.json({
     name: 'AstraSync MCP Bridge',
-    version: '1.0.0',
+    version: '2.0.0',
+    sdk: '@modelcontextprotocol/sdk',
     status: 'operational',
-    message: 'HTTP bridge for Model Context Protocol (MCP) to AstraSync Agent Registry',
+    message: 'Official MCP SDK implementation for AstraSync Agent Registry',
     endpoints: {
-      mcp: 'POST /mcp/v1',
+      mcp: 'POST /mcp/v1 (StreamableHTTP)',
       test: 'GET /mcp/test',
-      health: 'GET /health'
+      health: 'GET /health',
     },
-    documentation: 'https://github.com/AstraSyncAI/astrasync-mcp-bridge'
+    documentation: 'https://github.com/AstraSyncAI/astrasync-mcp-bridge',
   });
 });
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-// MCP endpoint
+// MCP endpoint using StreamableHTTP transport
 app.post('/mcp/v1', async (req, res) => {
-  await handleMCPRequest(req, res, apiClient);
+  // Connect server to transport on first request if not already connected
+  if (!transport._started) {
+    await mcpServer.connect(transport);
+  }
+  await transport.handleRequest(req, res, req.body);
 });
 
-// Test interface
+// Test interface (keeping for backward compatibility)
 app.get('/mcp/test', (req, res) => {
-  const html = `
+  res.send(`
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AstraSync MCP Test Interface</title>
+  <title>AstraSync MCP Bridge - Test Interface</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f7fa;
-      color: #333;
-      line-height: 1.6;
-    }
-    
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    
-    header {
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      margin-bottom: 30px;
-    }
-    
-    h1 {
-      color: #1a1a1a;
-      margin-bottom: 10px;
-      font-size: 28px;
-    }
-    
-    .subtitle {
-      color: #666;
-      font-size: 16px;
-    }
-    
-    .section {
-      background: white;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-    
-    h2 {
-      color: #333;
-      margin-bottom: 15px;
-      font-size: 20px;
-    }
-    
-    h3 {
-      color: #444;
-      margin-bottom: 10px;
-      font-size: 18px;
-    }
-    
-    .code-block {
-      background: #f8f9fa;
-      padding: 20px;
-      border-radius: 8px;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      font-size: 14px;
-      overflow-x: auto;
-      border: 1px solid #e1e4e8;
-      margin: 15px 0;
-    }
-    
-    .endpoint {
-      color: #0366d6;
-      font-weight: bold;
-    }
-    
-    .method {
-      color: #28a745;
-      font-weight: bold;
-    }
-    
-    button {
-      background: #0366d6;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 500;
-      transition: background 0.2s;
-    }
-    
-    button:hover {
-      background: #0256c7;
-    }
-    
-    button:active {
-      background: #024a9e;
-    }
-    
-    #result {
-      margin-top: 20px;
-      padding: 20px;
-      background: #f6f8fa;
-      border-radius: 8px;
-      white-space: pre-wrap;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      font-size: 13px;
-      max-height: 400px;
-      overflow-y: auto;
-      border: 1px solid #e1e4e8;
-    }
-    
-    #result.success {
-      background: #f0fdf4;
-      border-color: #86efac;
-    }
-    
-    #result.error {
-      background: #fef2f2;
-      border-color: #fca5a5;
-    }
-    
-    .test-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    
-    .info-box {
-      background: #e3f2fd;
-      border: 1px solid #90caf9;
-      padding: 15px;
-      border-radius: 6px;
-      margin-top: 15px;
-    }
-    
-    .info-box p {
-      margin: 5px 0;
-    }
-    
-    pre {
-      margin: 0;
-    }
+    body { font-family: system-ui; max-width: 800px; margin: 40px auto; padding: 20px; }
+    h1 { color: #1a1a1a; }
+    .info { background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0; }
+    pre { background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>AstraSync MCP Test Interface</h1>
-      <p class="subtitle">Test the Model Context Protocol (MCP) integration over HTTP</p>
-    </header>
-    
-    <div class="section">
-      <h2>Quick Test</h2>
-      <p>Test the MCP endpoint to ensure it's working correctly:</p>
-      <div class="test-actions">
-        <button onclick="testListTools()">Test List Tools</button>
-        <button onclick="testRegisterAgent()">Test Register Agent</button>
-        <button onclick="testVerifyAgent()">Test Verify Agent</button>
-      </div>
-      <div id="result"></div>
-    </div>
-    
-    <div class="section">
-      <h2>Integration Instructions</h2>
-      <p>To integrate with your AI assistant, use the following endpoint:</p>
-      <div class="code-block">
-        <span class="method">POST</span> <span class="endpoint">/mcp/v1</span>
-      </div>
-
-      <h3>Configuration for AI Assistants</h3>
-      <div class="code-block">
-<pre>{
-  "mcpServers": {
-    "astrasync": {
-      "url": "http://localhost:3000/mcp/v1",
-      "transport": "http"
-    }
-  }
-}</pre>
-      </div>
-      <p><em>Replace localhost:3000 with your deployed bridge URL</em></p>
-    </div>
-    
-    <div class="section">
-      <h3>Example: List Available Tools</h3>
-      <div class="code-block">
-<pre>{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/list",
-  "params": {}
-}</pre>
-      </div>
-      
-      <h3>Example: Register an Agent</h3>
-      <div class="code-block">
-<pre>{
-  "jsonrpc": "2.0",
-  "id": 2,
-  "method": "tools/call",
-  "params": {
-    "name": "register_agent",
-    "arguments": {
-      "agentName": "Customer Support Bot",
-      "agentDescription": "Handles customer inquiries via chat",
-      "developerEmail": "developer@example.com",
-      "agentOwner": "ACME Corp"
-    }
-  }
-}</pre>
-      </div>
-      
-      <h3>Example: Verify an Agent</h3>
-      <div class="code-block">
-<pre>{
-  "jsonrpc": "2.0",
-  "id": 3,
-  "method": "tools/call",
-  "params": {
-    "name": "verify_agent",
-    "arguments": {
-      "agentId": "TEMP-1234567-ABCDE"
-    }
-  }
-}</pre>
-      </div>
-    </div>
-    
-    <div class="section">
-      <h2>Need Help?</h2>
-      <p>Check out our documentation on GitHub: <a href="https://github.com/AstraSyncAI/astrasync-mcp-bridge" target="_blank">AstraSync MCP Bridge</a></p>
-      <div class="info-box">
-        <p><strong>Note:</strong> This bridge connects to the AstraSync API for agent registration.</p>
-        <p>Create an account at <a href="https://astrasync.ai" target="_blank">astrasync.ai</a> to manage your registered agents.</p>
-      </div>
-    </div>
+  <h1>AstraSync MCP Bridge - SDK Implementation</h1>
+  <div class="info">
+    <strong>✓ Now using official @modelcontextprotocol/sdk</strong>
+    <p>This bridge now uses the official MCP SDK for automatic protocol compliance and version support.</p>
   </div>
-  
-  <script>
-    const resultDiv = document.getElementById('result');
-    
-    async function makeRequest(body) {
-      resultDiv.textContent = 'Loading...';
-      resultDiv.className = '';
-      
-      try {
-        const response = await fetch('/mcp/v1', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(body)
-        });
-        
-        const data = await response.json();
-        resultDiv.textContent = JSON.stringify(data, null, 2);
-        
-        if (data.error) {
-          resultDiv.className = 'error';
-        } else {
-          resultDiv.className = 'success';
-        }
-      } catch (error) {
-        resultDiv.textContent = 'Error: ' + error.message;
-        resultDiv.className = 'error';
-      }
-    }
-    
-    function testListTools() {
-      makeRequest({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'tools/list',
-        params: {}
-      });
-    }
-    
-    function testRegisterAgent() {
-      const name = prompt('Agent name:', 'Test Bot ' + Date.now());
-      const email = prompt('Developer email:', 'test@example.com');
-      
-      if (name && email) {
-        makeRequest({
-          jsonrpc: '2.0',
-          id: 2,
-          method: 'tools/call',
-          params: {
-            name: 'register_agent',
-            arguments: {
-              agentName: name,
-              agentDescription: 'Test agent created via MCP test interface',
-              developerEmail: email,
-              agentOwner: 'Test Company'
-            }
-          }
-        });
-      }
-    }
-    
-    function testVerifyAgent() {
-      const agentId = prompt('Enter Agent ID to verify:', 'TEMP-');
-      
-      if (agentId) {
-        makeRequest({
-          jsonrpc: '2.0',
-          id: 3,
-          method: 'tools/call',
-          params: {
-            name: 'verify_agent',
-            arguments: {
-              agentId: agentId
-            }
-          }
-        });
-      }
-    }
-  </script>
+  <h2>Quick Test</h2>
+  <p>Test tools/list endpoint:</p>
+  <pre>curl -X POST http://localhost:${port}/mcp/v1 \\
+  -H "Content-Type: application/json" \\
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'</pre>
+  <h2>Available Tools</h2>
+  <ul>
+    <li><strong>register_agent</strong> - Register AI agents with blockchain identity</li>
+    <li><strong>verify_agent</strong> - Verify agent registration status</li>
+    <li><strong>create_account</strong> - Create developer account</li>
+    <li><strong>generate_api_key</strong> - Generate API credentials</li>
+    <li><strong>create_crypto_keypair</strong> - Generate signing keypairs</li>
+  </ul>
+  <p><a href="https://github.com/AstraSyncAI/astrasync-mcp-bridge">View Documentation</a></p>
 </body>
 </html>
-  `;
-  
-  res.header('Content-Type', 'text/html').send(html);
+  `);
 });
 
 // 404 handler
@@ -383,22 +437,23 @@ app.use((req, res) => {
   res.status(404).json({
     error: 'Not found',
     message: `Cannot ${req.method} ${req.path}`,
-    suggestion: 'Check the documentation at https://github.com/AstraSyncAI/astrasync-mcp-bridge'
+    suggestion: 'Check the documentation at https://github.com/AstraSyncAI/astrasync-mcp-bridge',
   });
 });
 
-// Error handling middleware
+// Error handling
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'production' ? 'An error occurred' : err.message
+    message: process.env.NODE_ENV === 'production' ? 'An error occurred' : err.message,
   });
 });
 
 // Start server
 app.listen(port, () => {
-  console.log(`AstraSync MCP Bridge running on port ${port}`);
+  console.log(`AstraSync MCP Bridge (SDK) running on port ${port}`);
+  console.log(`Using @modelcontextprotocol/sdk v1.21.1`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`API URL: ${process.env.ASTRASYNC_API_URL || 'https://astrasync.ai/api'}`);
   console.log(`\nEndpoints:`);
