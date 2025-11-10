@@ -60,6 +60,37 @@ Once running, configure your AI assistant to use the bridge:
 
 **Test your setup**: Visit `http://localhost:3000/mcp/test` for an interactive test interface.
 
+## Technical Implementation
+
+### Built with Official MCP SDK
+
+The AstraSync MCP Bridge uses the official [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk) for automatic protocol compliance and future-proof compatibility.
+
+**Benefits:**
+- ✅ **Automatic version negotiation** - Supports latest MCP protocol (2025-06-18)
+- ✅ **Built-in transports** - StreamableHTTP with SSE support included
+- ✅ **Standardized error handling** - Proper McpError types
+- ✅ **Reduced maintenance** - SDK handles protocol updates automatically
+- ✅ **Battle-tested** - Used by all major MCP implementations
+
+**Dependencies:**
+```json
+{
+  "@modelcontextprotocol/sdk": "^1.21.1",
+  "express": "^4.21.2",
+  "cors": "^2.8.5",
+  "dotenv": "^16.4.7"
+}
+```
+
+**Why SDK over custom implementation?**
+
+The SDK saves ~22-30 hours of maintenance over 2 years:
+- Custom implementation: ~12-16 hours/year (protocol updates, bug fixes, testing)
+- SDK implementation: ~1 hour/year (dependency updates only)
+
+Plus automatic compliance with future MCP spec changes.
+
 ## Available Tools
 
 ### Agent Management
