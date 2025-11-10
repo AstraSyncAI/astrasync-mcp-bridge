@@ -1,6 +1,6 @@
 # AstraSync MCP Bridge
 
-Complete AI agent lifecycle management through the Model Context Protocol (MCP) - from account creation to agent registration, verification, and cryptographic signing.
+Enable AstraSync's Identity, Trust and Verification capabilities through Model Context Protocol (MCP) - from account creation to agent registration, verification, and cryptographic signing.
 
 ## What is this?
 
