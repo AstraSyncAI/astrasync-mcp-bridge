@@ -1,18 +1,47 @@
 // api-client.js
 // Handles communication with the AstraSync API
 
-// Production API - Agents registered receive temporary IDs that can be
-// managed by creating an account at https://www.astrasync.ai/alphaSignup
+// Production API - requires authentication for all operations
 const API_BASE_URL = process.env.ASTRASYNC_API_URL || 'https://astrasync.ai/api';
 
-export async function registerAgent({ email, agent }) {
-  const response = await fetch(`${API_BASE_URL}/v1/register`, {
+export async function registerAgent({ email, password, apiKey, agent }) {
+  // Get authentication token
+  let token;
+
+  if (apiKey) {
+    // Use API key directly
+    token = apiKey;
+  } else if (email && password) {
+    // Login to get JWT token
+    const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Source': 'mcp-bridge'
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!loginResponse.ok) {
+      const error = await loginResponse.text();
+      throw new Error(`Authentication failed: ${error}`);
+    }
+
+    const { data } = await loginResponse.json();
+    token = data.token;
+  } else {
+    throw new Error('Authentication required: provide either apiKey or email+password');
+  }
+
+  // Register agent with authentication
+  const response = await fetch(`${API_BASE_URL}/agents`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
       'X-Source': 'mcp-bridge'
     },
-    body: JSON.stringify({ email, agent })
+    body: JSON.stringify(agent)
   });
 
   if (!response.ok) {
