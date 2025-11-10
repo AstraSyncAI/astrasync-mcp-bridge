@@ -112,23 +112,59 @@ Generate a crypto keypair for signing agent registrations.
 
 **Note:** Your mnemonic phrase will be sent to your email. Save it securely offline!
 
-## Platform Support Status
+## Platform Support Status (Updated November 2025)
 
-| Platform | MCP Support | Integration Method | Notes |
-|----------|-------------|-------------------|-------|
-| **ChatGPT Desktop** | ✅ Native | HTTP MCP | Full MCP support |
-| **ChatGPT Web** | ❌ Not supported | Custom GPT Actions | Use OpenAPI spec |
-| **Claude Desktop** | ✅ Native | HTTP MCP | Full MCP support |
-| **Claude Web** | ❌ Not supported | Copy/paste workflow | No direct integration |
-| **Cursor** | ✅ Native | HTTP MCP | IDE integration |
-| **Windsurf** | ✅ Native | HTTP MCP | IDE integration |
-| **Cline** | ✅ Native | HTTP MCP | IDE integration |
-| **Letta** | 🔄 Varies | HTTP MCP or API | Check version |
-| **Perplexity** | ❌ Not yet | Direct API | Use REST endpoint |
-| **Google Gemini** | 🔜 Coming | Will support MCP | H1 2025 expected |
-| **Web Browsers** | ➕ Possible | Direct API | Build custom integration |
+The Model Context Protocol has seen widespread adoption across major AI platforms in 2025:
 
-For detailed platform-specific instructions, see [PLATFORMS.md](docs/PLATFORMS.md).
+| Platform | MCP Support | Integration Method | Status | Notes |
+|----------|-------------|-------------------|--------|-------|
+| **Claude Desktop** | ✅ Native | HTTP MCP | Production | Full MCP support since Nov 2024 |
+| **ChatGPT Desktop** | ✅ Native | HTTP MCP | Production | Added March 2025 |
+| **OpenAI Agents SDK** | ✅ Native | SDK Integration | Production | Full MCP support since March 2025 |
+| **Google Gemini CLI** | ✅ Native | Extension System | Production | [Install extension](https://github.com/AstraSyncAI/astrasync-gemini-extension) |
+| **Google Gemini API** | ✅ Native | SDK Integration | Production | Native MCP support since April 2025 |
+| **Salesforce Agentforce** | ✅ Native | MCP Client | Pilot (July 2025) | Native MCP client in Agentforce |
+| **Cursor** | ✅ Native | HTTP MCP | Production | IDE integration |
+| **Windsurf** | ✅ Native | HTTP MCP | Production | IDE integration |
+| **Cline** | ✅ Native | HTTP MCP | Production | VS Code extension |
+| **Replit** | ✅ Native | HTTP MCP | Production | Built-in support |
+| **Sourcegraph** | ✅ Native | HTTP MCP | Production | Code intelligence integration |
+| **Letta** | ✅ Native | HTTP MCP | Production | Memory-enabled agents |
+| **ChatGPT Web** | ⚠️ Limited | Custom GPT Actions | Beta | Use OpenAPI spec for custom GPTs |
+| **Claude Web** | ⚠️ Limited | Projects Feature | Beta | Via Claude Projects |
+
+### Quick Start by Platform
+
+**Gemini CLI** - Use our official extension:
+```bash
+gemini extensions install https://github.com/AstraSyncAI/astrasync-gemini-extension
+```
+
+**Claude Desktop** - Add to `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "astrasync": {
+      "url": "http://localhost:3000/mcp/v1",
+      "transport": "http"
+    }
+  }
+}
+```
+
+**ChatGPT Desktop** - Add to MCP settings:
+```json
+{
+  "mcpServers": {
+    "astrasync": {
+      "url": "http://localhost:3000/mcp/v1",
+      "transport": "http"
+    }
+  }
+}
+```
+
+**Salesforce Agentforce** - Available in Pilot (July 2025 release)
 
 ## Direct API Usage
 
@@ -153,8 +189,9 @@ curl -X POST http://localhost:3000/mcp/v1 \
   }'
 ```
 
-## Response Example
+## Response Examples
 
+### Register Agent
 ```json
 {
   "jsonrpc": "2.0",
@@ -162,7 +199,21 @@ curl -X POST http://localhost:3000/mcp/v1 \
   "result": {
     "content": [{
       "type": "text",
-      "text": "Successfully registered agent: Your Agent\nAgent ID: TEMP-1234567-ABCDE\nTrust Score: TEMP-95%\nBlockchain Status: pending"
+      "text": "Successfully registered agent: Customer Support Bot\nAgent ID: ASTRAS-789456\nTrust Score: 45/100 (Free tier baseline)\nBlockchain Status: Queued for verification\n\nView agent card: https://astrasync.ai/agents/ASTRAS-789456"
+    }]
+  }
+}
+```
+
+### Create Account
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "content": [{
+      "type": "text",
+      "text": "✓ Account created successfully!\nEmail: developer@example.com\nType: individual\n\nYou can now:\n• Generate API keys with generate_api_key\n• Create crypto keypairs with create_crypto_keypair (Developer tier)\n• Register agents with your account\n\nLogin to your dashboard: https://astrasync.ai/dashboard"
     }]
   }
 }
@@ -208,13 +259,28 @@ npm start    # Production mode
 - [API Reference](docs/API_REFERENCE.md) - Technical protocol details
 - [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
+## Related Projects
+
+### Official Extensions
+
+- **[Gemini CLI Extension](https://github.com/AstraSyncAI/astrasync-gemini-extension)** - Native extension for Google's Gemini CLI
+- **[Salesforce App](https://github.com/AstraSyncAI/astrasync-salesforce-app)** - Agentforce integration for Salesforce
+- **[AWS Marketplace](https://github.com/AstraSync-KYA/KYA-Platform)** - Enterprise deployment on AWS
+
+### SDKs & Tools
+
+- **[Node.js SDK](https://github.com/AstraSyncAI/astrasync-node-sdk)** - Universal SDK with auto-detection for 5+ agent formats
+- **[Python SDK](https://github.com/AstraSyncAI/astrasync-python-sdk)** - Python integration for agent registration
+- **[Main API](https://github.com/AstraSyncAI/astrasync-api)** - RESTful API for direct integration
+
 ## About AstraSync
 
 AstraSync is building the trust infrastructure for AI agents. Learn more at [astrasync.ai](https://astrasync.ai).
 
-- **Main API**: [github.com/AstraSyncAI/astrasync-api](https://github.com/AstraSyncAI/astrasync-api)
+- **Platform**: [astrasync.ai](https://astrasync.ai)
 - **Documentation**: [docs.astrasync.ai](https://docs.astrasync.ai)
 - **Discord**: [Join our community](https://discord.gg/astrasync)
+- **GitHub**: [github.com/AstraSyncAI](https://github.com/AstraSyncAI)
 
 ## License
 
