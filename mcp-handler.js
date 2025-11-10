@@ -36,10 +36,81 @@ const TOOLS = [
       properties: {
         agentId: {
           type: 'string',
-          description: 'The TEMP-XXXXX ID to verify'
+          description: 'The agent ID to verify'
         }
       },
       required: ['agentId']
+    }
+  },
+  {
+    name: 'create_account',
+    description: 'Create a new AstraSync developer account',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        email: {
+          type: 'string',
+          description: 'Email address for the account'
+        },
+        password: {
+          type: 'string',
+          description: 'Password for the account (min 8 characters)'
+        },
+        fullName: {
+          type: 'string',
+          description: 'Full name of the developer'
+        },
+        accountType: {
+          type: 'string',
+          description: 'Account type: individual or business',
+          enum: ['individual', 'business']
+        }
+      },
+      required: ['email', 'password', 'fullName']
+    }
+  },
+  {
+    name: 'generate_api_key',
+    description: 'Generate a new API key for your AstraSync account (requires authentication)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        email: {
+          type: 'string',
+          description: 'Account email address'
+        },
+        password: {
+          type: 'string',
+          description: 'Account password'
+        },
+        keyName: {
+          type: 'string',
+          description: 'Name/label for this API key'
+        }
+      },
+      required: ['email', 'password', 'keyName']
+    }
+  },
+  {
+    name: 'create_crypto_keypair',
+    description: 'Generate a crypto keypair for signing agent registrations (requires authentication, Developer tier)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        email: {
+          type: 'string',
+          description: 'Account email address'
+        },
+        password: {
+          type: 'string',
+          description: 'Account password'
+        },
+        keyName: {
+          type: 'string',
+          description: 'Name/label for this keypair'
+        }
+      },
+      required: ['email', 'password']
     }
   }
 ];
@@ -252,7 +323,176 @@ export async function handleMCPRequest(req, res, apiClient) {
             });
           }
         }
-        
+
+        if (name === 'create_account') {
+          try {
+            const result = await apiClient.createAccount({
+              email: args.email,
+              password: args.password,
+              fullName: args.fullName,
+              accountType: args.accountType || 'individual'
+            });
+
+            const successMessage = [
+              `✓ Account created successfully!`,
+              `Email: ${args.email}`,
+              `Type: ${args.accountType || 'individual'}`,
+              '',
+              'You can now:',
+              '• Generate API keys with generate_api_key',
+              '• Create crypto keypairs with create_crypto_keypair (Developer tier)',
+              '• Register agents with your account',
+              '',
+              `Login to your dashboard: https://astrasync.ai/dashboard`
+            ].join('\n');
+
+            return res.json({
+              jsonrpc: '2.0',
+              id,
+              result: {
+                content: [
+                  {
+                    type: 'text',
+                    text: successMessage
+                  }
+                ]
+              }
+            });
+          } catch (error) {
+            console.error('[MCP] Account creation error:', error);
+
+            return res.json({
+              jsonrpc: '2.0',
+              id,
+              error: {
+                code: -32603,
+                message: 'Account creation failed',
+                data: error.message
+              }
+            });
+          }
+        }
+
+        if (name === 'generate_api_key') {
+          try {
+            const result = await apiClient.generateApiKey({
+              email: args.email,
+              password: args.password,
+              keyName: args.keyName
+            });
+
+            const successMessage = [
+              `✓ API key generated successfully!`,
+              ``,
+              `Key Name: ${args.keyName}`,
+              `API Key: ${result.apiKey}`,
+              ``,
+              `⚠️  IMPORTANT: Save this API key securely!`,
+              `You won't be able to see it again.`,
+              ``,
+              `Use this key to authenticate API requests:`,
+              `Authorization: Bearer ${result.apiKey}`,
+              ``,
+              `Manage your API keys: https://astrasync.ai/settings/developer-tools`
+            ].join('\n');
+
+            return res.json({
+              jsonrpc: '2.0',
+              id,
+              result: {
+                content: [
+                  {
+                    type: 'text',
+                    text: successMessage
+                  }
+                ]
+              }
+            });
+          } catch (error) {
+            console.error('[MCP] API key generation error:', error);
+
+            return res.json({
+              jsonrpc: '2.0',
+              id,
+              error: {
+                code: -32603,
+                message: 'API key generation failed',
+                data: error.message
+              }
+            });
+          }
+        }
+
+        if (name === 'create_crypto_keypair') {
+          try {
+            const result = await apiClient.createCryptoKeypair({
+              email: args.email,
+              password: args.password,
+              keyName: args.keyName
+            });
+
+            const successMessage = [
+              `✓ Crypto keypair generated successfully!`,
+              ``,
+              `Key Name: ${args.keyName || 'Default'}`,
+              `Public Key: ${result.publicKey}`,
+              ``,
+              `⚠️  IMPORTANT SECURITY NOTICE:`,
+              `• Your mnemonic phrase has been sent to ${args.email}`,
+              `• Save it securely offline - it cannot be recovered!`,
+              `• Never share your mnemonic or private key`,
+              `• This keypair is stored securely in your account`,
+              ``,
+              `You can now:`,
+              `• Sign agent registrations cryptographically`,
+              `• Prove ownership for secure transfers`,
+              `• Boost trust scores with verified authenticity`,
+              ``,
+              `Tier note: Free tier allows 1 keypair, Developer tier allows unlimited.`,
+              ``,
+              `Manage keypairs: https://astrasync.ai/settings/developer-tools`
+            ].join('\n');
+
+            return res.json({
+              jsonrpc: '2.0',
+              id,
+              result: {
+                content: [
+                  {
+                    type: 'text',
+                    text: successMessage
+                  }
+                ]
+              }
+            });
+          } catch (error) {
+            console.error('[MCP] Crypto keypair creation error:', error);
+
+            // Check if it's a tier limitation error
+            if (error.message && error.message.includes('tier')) {
+              return res.json({
+                jsonrpc: '2.0',
+                id,
+                error: {
+                  code: -32603,
+                  message: 'Tier limitation',
+                  data: `Free tier allows 1 crypto keypair. Upgrade to Developer tier for unlimited keypairs: https://astrasync.ai/pricing`
+                }
+              });
+            }
+
+            return res.json({
+              jsonrpc: '2.0',
+              id,
+              error: {
+                code: -32603,
+                message: 'Crypto keypair creation failed',
+                data: error.message
+              }
+            });
+          }
+        }
+
         // Unknown tool
         return res.json({
           jsonrpc: '2.0',

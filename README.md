@@ -54,11 +54,63 @@ Once running, configure your AI assistant to use the bridge:
 
 ## Available Tools
 
-### `register_agent`
+### Agent Management
+
+#### `register_agent`
 Register a new AI agent with AstraSync's compliance registry.
 
-### `verify_agent`  
+**Required parameters:**
+- `agentName`: Name of the AI agent
+- `agentDescription`: What the agent does
+- `developerEmail`: Email of the developer
+- `agentOwner`: Name of the agent owner or company
+
+#### `verify_agent`
 Verify if an agent is registered and compliant.
+
+**Required parameters:**
+- `agentId`: The agent ID to verify
+
+### Account Management
+
+#### `create_account`
+Create a new AstraSync developer account.
+
+**Required parameters:**
+- `email`: Email address for the account
+- `password`: Password (min 8 characters)
+- `fullName`: Full name of the developer
+- `accountType`: `individual` or `business` (optional, defaults to `individual`)
+
+**Returns:** Account creation confirmation with dashboard link
+
+#### `generate_api_key`
+Generate a new API key for your AstraSync account.
+
+**Required parameters:**
+- `email`: Account email address
+- `password`: Account password
+- `keyName`: Name/label for this API key
+
+**Returns:** API key (save it securely - you won't see it again!)
+
+**Note:** Requires existing AstraSync account (use `create_account` first)
+
+#### `create_crypto_keypair`
+Generate a crypto keypair for signing agent registrations.
+
+**Required parameters:**
+- `email`: Account email address
+- `password`: Account password
+- `keyName`: Name/label for this keypair (optional)
+
+**Returns:** Public key and confirmation that mnemonic was emailed
+
+**Tier limits:**
+- **Free tier**: 1 crypto keypair
+- **Developer tier**: Unlimited keypairs
+
+**Note:** Your mnemonic phrase will be sent to your email. Save it securely offline!
 
 ## Platform Support Status
 
