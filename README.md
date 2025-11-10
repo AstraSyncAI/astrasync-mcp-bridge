@@ -65,13 +65,19 @@ Once running, configure your AI assistant to use the bridge:
 ### Agent Management
 
 #### `register_agent`
-Register a new AI agent with AstraSync's compliance registry.
+Register a new AI agent with AstraSync's compliance registry (requires authentication).
 
 **Required parameters:**
 - `agentName`: Name of the AI agent
 - `agentDescription`: What the agent does
-- `developerEmail`: Email of the developer
 - `agentOwner`: Name of the agent owner or company
+- `email`: Your AstraSync account email
+
+**Authentication (one required):**
+- `password`: Your account password, OR
+- `apiKey`: Your AstraSync API key
+
+**Note:** You must have an AstraSync account to register agents. Use `create_account` first if needed.
 
 #### `verify_agent`
 Verify if an agent is registered and compliant.
@@ -185,7 +191,7 @@ For platforms without MCP support, you can call the bridge directly:
 
 ```bash
 curl -X POST http://localhost:3000/mcp/v1 \
-  -H "Content-Type": "application/json" \
+  -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
     "id": 1,
@@ -195,12 +201,15 @@ curl -X POST http://localhost:3000/mcp/v1 \
       "arguments": {
         "agentName": "Your Agent",
         "agentDescription": "What it does",
-        "developerEmail": "you@example.com",
-        "agentOwner": "Your Company"
+        "agentOwner": "Your Company",
+        "email": "you@example.com",
+        "password": "your-password"
       }
     }
   }'
 ```
+
+**Note:** For production use, use `apiKey` instead of `password` for better security.
 
 ## Response Examples
 

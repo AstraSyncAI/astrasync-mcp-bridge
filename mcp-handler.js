@@ -4,7 +4,7 @@
 const TOOLS = [
   {
     name: 'register_agent',
-    description: 'Register a new AI agent with AstraSync for compliance tracking',
+    description: 'Register a new AI agent with AstraSync for compliance tracking (requires authentication)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -16,16 +16,24 @@ const TOOLS = [
           type: 'string',
           description: 'What the agent does'
         },
-        developerEmail: {
-          type: 'string',
-          description: 'Email of the developer (required for future account linking)'
-        },
         agentOwner: {
           type: 'string',
           description: 'Name of the agent owner or company'
+        },
+        email: {
+          type: 'string',
+          description: 'Your AstraSync account email (for authentication)'
+        },
+        password: {
+          type: 'string',
+          description: 'Your AstraSync account password (for authentication). Not required if using apiKey.'
+        },
+        apiKey: {
+          type: 'string',
+          description: 'Your AstraSync API key (alternative to email/password authentication)'
         }
       },
-      required: ['agentName', 'agentDescription', 'developerEmail', 'agentOwner']
+      required: ['agentName', 'agentDescription', 'agentOwner', 'email']
     }
   },
   {
@@ -173,36 +181,32 @@ export async function handleMCPRequest(req, res, apiClient) {
             await apiClient.logAttempt({
               event: 'mcp_registration_attempt',
               data: {
-                email: args.developerEmail,
+                email: args.email,
                 agentName: args.agentName,
                 source: 'mcp-http'
               }
             });
-            
-            // Call the registration API
+
+            // Call the registration API with authentication
             const result = await apiClient.registerAgent({
-              email: args.developerEmail,
+              email: args.email,
+              password: args.password,
+              apiKey: args.apiKey,
               agent: {
                 name: args.agentName,
                 description: args.agentDescription,
-                owner: args.agentOwner,
-                capabilities: [],
-                version: '1.0.0'
+                owner: args.agentOwner
               }
             });
-            
-            // Format success response with enhanced messaging
+
+            // Format success response
             const successMessage = [
-              `Successfully registered agent: ${args.agentName}`,
-              `Agent ID: ${result.agentId} (TEMPORARY - converts on account creation)`,
-              `Trust Score: ${result.trustScore} (PREVIEW - becomes dynamic on account creation)`,
-              `Blockchain Status: ${result.blockchain.status}`,
+              `✓ Successfully registered agent: ${args.agentName}`,
+              `Agent ID: ${result.id || result.agentId}`,
+              `Trust Score: ${result.trustScore || 'Pending calculation'}`,
+              `Status: ${result.status || 'Active'}`,
               '',
-              'This is a PRODUCTION registration.',
-              'To convert to permanent credentials, create an account at:',
-              'https://www.astrasync.ai/alphaSignup',
-              '',
-              'Save this Agent ID for future reference.'
+              'Manage your agent: https://astrasync.ai/dashboard'
             ].join('\n');
             
             return res.json({
@@ -219,11 +223,11 @@ export async function handleMCPRequest(req, res, apiClient) {
             });
           } catch (error) {
             console.error('[MCP] Registration error:', error);
-            
+
             await apiClient.logAttempt({
               event: 'mcp_registration_failed',
               data: {
-                email: args.developerEmail,
+                email: args.email,
                 agentName: args.agentName,
                 error: error.message,
                 source: 'mcp-http'
