@@ -1,10 +1,18 @@
 # AstraSync MCP Bridge
 
-Enable any AI assistant to register and verify agents with AstraSync through the Model Context Protocol (MCP).
+Complete AI agent lifecycle management through the Model Context Protocol (MCP) - from account creation to agent registration, verification, and cryptographic signing.
 
 ## What is this?
 
-The AstraSync MCP Bridge connects AI assistants and development tools to the AstraSync AI Agent Registry. It provides a standardized way to give AI agents verifiable identities and compliance tracking - think of it as SSL certificates for AI agents.
+The AstraSync MCP Bridge connects AI assistants and development tools to the AstraSync AI Agent Registry. Through a single MCP integration, you can:
+
+- **Create developer accounts** - Sign up without leaving your AI assistant
+- **Manage API credentials** - Generate and manage API keys programmatically
+- **Register AI agents** - Add agents to the blockchain-based registry
+- **Verify agent identity** - Check registration status and trust scores
+- **Generate crypto keypairs** - Enable cryptographic signing for ownership proof
+
+Think of it as complete identity infrastructure for AI agents, accessible through natural conversation.
 
 ## Key Features
 
@@ -112,26 +120,31 @@ Generate a crypto keypair for signing agent registrations.
 
 **Note:** Your mnemonic phrase will be sent to your email. Save it securely offline!
 
-## Platform Support Status (Updated November 2025)
+## AstraSync MCP Bridge Compatibility (Updated November 2025)
 
-The Model Context Protocol has seen widespread adoption across major AI platforms in 2025:
+Tested platforms where the AstraSync MCP Bridge works:
 
-| Platform | MCP Support | Integration Method | Status | Notes |
-|----------|-------------|-------------------|--------|-------|
-| **Claude Desktop** | ✅ Native | HTTP MCP | Production | Full MCP support since Nov 2024 |
-| **ChatGPT Desktop** | ✅ Native | HTTP MCP | Production | Added March 2025 |
-| **OpenAI Agents SDK** | ✅ Native | SDK Integration | Production | Full MCP support since March 2025 |
-| **Google Gemini CLI** | ✅ Native | Extension System | Production | [Install extension](https://github.com/AstraSyncAI/astrasync-gemini-extension) |
-| **Google Gemini API** | ✅ Native | SDK Integration | Production | Native MCP support since April 2025 |
-| **Salesforce Agentforce** | ✅ Native | MCP Client | Pilot (July 2025) | Native MCP client in Agentforce |
-| **Cursor** | ✅ Native | HTTP MCP | Production | IDE integration |
-| **Windsurf** | ✅ Native | HTTP MCP | Production | IDE integration |
-| **Cline** | ✅ Native | HTTP MCP | Production | VS Code extension |
-| **Replit** | ✅ Native | HTTP MCP | Production | Built-in support |
-| **Sourcegraph** | ✅ Native | HTTP MCP | Production | Code intelligence integration |
-| **Letta** | ✅ Native | HTTP MCP | Production | Memory-enabled agents |
-| **ChatGPT Web** | ⚠️ Limited | Custom GPT Actions | Beta | Use OpenAPI spec for custom GPTs |
-| **Claude Web** | ⚠️ Limited | Projects Feature | Beta | Via Claude Projects |
+| Platform | Compatibility | Integration Method | Status | How to Use |
+|----------|--------------|-------------------|--------|------------|
+| **Claude Desktop** | ✅ Fully Compatible | HTTP MCP Server | Tested | Add to `claude_desktop_config.json` |
+| **ChatGPT Desktop** | ✅ Fully Compatible | HTTP MCP Server | Tested | Add to MCP settings |
+| **OpenAI Agents SDK** | ✅ Fully Compatible | HTTP MCP Server | Tested | Configure in agent code |
+| **Google Gemini CLI** | ✅ Fully Compatible | Official Extension | Tested | [Install extension](https://github.com/AstraSyncAI/astrasync-gemini-extension) |
+| **Cursor** | ✅ Fully Compatible | HTTP MCP Server | Tested | Add to MCP configuration |
+| **Windsurf** | ✅ Fully Compatible | HTTP MCP Server | Tested | Add to MCP configuration |
+| **Cline** | ✅ Fully Compatible | HTTP MCP Server | Tested | VS Code extension settings |
+| **Replit** | ✅ Compatible | HTTP MCP Server | Community tested | Configure MCP server |
+| **Sourcegraph** | ✅ Compatible | HTTP MCP Server | Community tested | Configure in settings |
+| **Letta** | ✅ Compatible | HTTP MCP Server | Community tested | Memory-enabled agents |
+| **Salesforce Agentforce** | 🔄 In Progress | MCP Client | Testing | MCP support in pilot |
+| **ChatGPT Web** | ⚠️ Workaround | Direct API via GPT Actions | Limited | Use JSON-RPC directly |
+| **Claude Web** | ⚠️ Workaround | Copy/Paste | Manual | No direct integration |
+
+**Legend:**
+- ✅ Fully Compatible: Officially tested and supported
+- ✅ Compatible: Community tested, expected to work
+- 🔄 In Progress: Under testing
+- ⚠️ Workaround: Alternative integration methods available
 
 ### Quick Start by Platform
 
@@ -263,9 +276,9 @@ npm start    # Production mode
 
 ### Official Extensions
 
-- **[Gemini CLI Extension](https://github.com/AstraSyncAI/astrasync-gemini-extension)** - Native extension for Google's Gemini CLI
-- **[Salesforce App](https://github.com/AstraSyncAI/astrasync-salesforce-app)** - Agentforce integration for Salesforce
-- **[AWS Marketplace](https://github.com/AstraSync-KYA/KYA-Platform)** - Enterprise deployment on AWS
+- **[Gemini CLI Extension](https://github.com/AstraSyncAI/astrasync-gemini-extension)** - Native extension for Google's Gemini CLI (Production)
+- **Salesforce App** - Agentforce integration for Salesforce (Coming Soon)
+- **AWS Marketplace** - Enterprise deployment on AWS (Coming Soon)
 
 ### SDKs & Tools
 
@@ -278,8 +291,7 @@ npm start    # Production mode
 AstraSync is building the trust infrastructure for AI agents. Learn more at [astrasync.ai](https://astrasync.ai).
 
 - **Platform**: [astrasync.ai](https://astrasync.ai)
-- **Documentation**: [docs.astrasync.ai](https://docs.astrasync.ai)
-- **Discord**: [Join our community](https://discord.gg/astrasync)
+- **Documentation**: [astrasync.ai/docs](https://astrasync.ai/docs)
 - **GitHub**: [github.com/AstraSyncAI](https://github.com/AstraSyncAI)
 
 ## License
